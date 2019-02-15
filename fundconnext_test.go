@@ -12,10 +12,11 @@ func TestLogin(t *testing.T) {
 	fc := (&FundConnext{
 		Username: Username,
 		Password: Password,
+		Env:      "demo",
 	})
 
 	if err := fc.Login().Error; err != nil {
 		panic(err)
 	}
-	assert.Equal(t, "A", "A")
+	assert.Equal(t, fc.AccessToken != "", true)
 }

@@ -1,5 +1,9 @@
 package fundconnext
 
+import (
+	"errors"
+)
+
 const (
 	// FundConnextDemoPath is a Path for Demo
 	FundConnextDemoPath string = "https://stage.fundconnext.com"
@@ -10,6 +14,15 @@ const (
 )
 
 // Endpoint is
-func Endpoint() string {
-	return FundConnextDemoPath
+func Endpoint(env string, p string) (string, error) {
+	switch env {
+	case "production":
+		return FundConnextProductionPath + "/" + p, nil
+	case "stage":
+		return FundConnextStagingPath + "/" + p, nil
+	case "demo":
+		return FundConnextDemoPath + "/" + p, nil
+	default:
+		return "", errors.New("Environment is not defined")
+	}
 }
