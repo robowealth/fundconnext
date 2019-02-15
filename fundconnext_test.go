@@ -1,17 +1,21 @@
 package fundconnext
 
 import (
+	"os"
 	"testing"
 
 	"gotest.tools/assert"
 )
 
 func TestLogin(t *testing.T) {
+	Username, Password := os.Getenv("USERNAME"), os.Getenv("PASSWORD")
 	fc := (&FundConnext{
-		Username: "API_ROBO01",
-		Password: "password3",
+		Username: Username,
+		Password: Password,
 	})
-	fc.Login()
-	println(fc.AccessToken)
+
+	if err := fc.Login().Error; err != nil {
+		panic(err)
+	}
 	assert.Equal(t, "A", "A")
 }

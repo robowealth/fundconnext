@@ -3,6 +3,7 @@ package fundconnext
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -29,13 +30,21 @@ func (f *FundConnext) Login() *FundConnext {
 		f.Error = err
 		return f
 	}
-	var result interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+
+	decoder := json.NewDecoder(resp.Body)
+
 	if resp.StatusCode != 200 {
-		f.Error = error
+		var errorResponse map[string]map[string]string
+		decoder.Decode(&errorResponse)
+
+		message, code := errorResponse["errMsg"]["message"], errorResponse["errMsg"]["code"]
+
+		f.Error = errors.New(code + " " + message)
 		return f
 	}
 
-	f.AccessToken = "" //result.AccessToken
+	var result *LoginResponse
+	decoder.Decode(&result)
+	f.AccessToken = result.AccessToken
 	return f
 }
