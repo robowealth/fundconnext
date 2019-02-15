@@ -7,10 +7,6 @@ import (
 	"net/http"
 )
 
-const (
-	fundconnext = "https://stage.fundconnext.com/api/auth"
-)
-
 // LoginRequest structure
 type LoginRequest struct {
 	Username string `json:"username"`
