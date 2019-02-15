@@ -10,8 +10,8 @@ import (
 
 func TestLoginSuccess(t *testing.T) {
 	Fc := &fundconnext.FundConnext{
-		Username: os.Getenv("USERNAME"),
-		Password: os.Getenv("PASSWORD"),
+		Username: os.Getenv("DEMO_USERNAME"),
+		Password: os.Getenv("DEMO_PASSWORD"),
 		Env:      "demo",
 	}
 	if err := Fc.Login().Error; err != nil {
