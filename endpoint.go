@@ -6,22 +6,22 @@ import (
 
 const (
 	// FundConnextDemoPath is a Path for Demo
-	FundConnextDemoPath string = "https://stage.fundconnext.com"
+	fundConnextDemoPath string = "https://stage.fundconnext.com"
 	// FundConnextStagingPath is a Path for Staging
-	FundConnextStagingPath string = "https://demo.fundconnext.com"
+	fundConnextStagingPath string = "https://demo.fundconnext.com"
 	// FundConnextProductionPath is a Path for Production
-	FundConnextProductionPath string = "https://www.fundconnext.com"
+	fundConnextProductionPath string = "https://www.fundconnext.com"
 )
 
 // Endpoint is
-func Endpoint(env string, p string) (string, error) {
+func endpoint(env string, p string) (string, error) {
 	switch env {
 	case "production":
-		return FundConnextProductionPath + "/" + p, nil
+		return fundConnextProductionPath + "/" + p, nil
 	case "stage":
-		return FundConnextStagingPath + "/" + p, nil
+		return fundConnextStagingPath + "/" + p, nil
 	case "demo":
-		return FundConnextDemoPath + "/" + p, nil
+		return fundConnextDemoPath + "/" + p, nil
 	default:
 		return "", errors.New("Environment is not defined")
 	}

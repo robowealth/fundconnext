@@ -21,7 +21,7 @@ type LoginResponse struct {
 	IsPassThrough bool   `json:"isPassthrough"`
 }
 
-// Login is
+// Login function
 func (f *FundConnext) Login() *FundConnext {
 	if f.Error != nil {
 		return f
@@ -31,7 +31,7 @@ func (f *FundConnext) Login() *FundConnext {
 		f.Error = err
 		return f
 	}
-	fundconnextPath, err := Endpoint(f.Env, "/api/auth")
+	fundconnextPath, err := endpoint(f.Env, "/api/auth")
 	if err != nil {
 		f.Error = err
 		return f
@@ -49,7 +49,6 @@ func (f *FundConnext) Login() *FundConnext {
 		decoder.Decode(&errorResponse)
 
 		message, code := errorResponse["errMsg"]["message"], errorResponse["errMsg"]["code"]
-
 		f.Error = errors.New(code + " " + message)
 		return f
 	}
