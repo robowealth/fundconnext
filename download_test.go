@@ -9,9 +9,9 @@ import (
 
 func TestDownload(t *testing.T) {
 	fc := &f.FundConnext{
-		Username: os.Getenv("DEMO_USERNAME"),
-		Password: os.Getenv("DEMO_PASSWORD"),
-		Env:      "demo",
+		Username: os.Getenv("USERNAME"),
+		Password: os.Getenv("PASSWORD"),
+		Env:      os.Getenv("ENV"),
 	}
 	err := fc.Login().Download("20190103", f.FundProfileFileName).Save("./20190103_fund.zip").End()
 	if err != nil {

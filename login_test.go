@@ -10,9 +10,9 @@ import (
 
 func TestLoginSuccess(t *testing.T) {
 	Fc := &fundconnext.FundConnext{
-		Username: os.Getenv("DEMO_USERNAME"),
-		Password: os.Getenv("DEMO_PASSWORD"),
-		Env:      "demo",
+		Username: os.Getenv("USERNAME"),
+		Password: os.Getenv("PASSWORD"),
+		Env:      os.Getenv("ENV"),
 	}
 	if err := Fc.Login().Error; err != nil {
 		panic(err)
@@ -24,7 +24,7 @@ func TestLoginFail(t *testing.T) {
 	Fc := &fundconnext.FundConnext{
 		Username: "foo",
 		Password: "bar",
-		Env:      "demo",
+		Env:      os.Getenv("ENV"),
 	}
 	if err := Fc.Login().Error; err != nil {
 		assert.ErrorContains(t, err, "E000 Unauthorized access")

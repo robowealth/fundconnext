@@ -6,9 +6,9 @@ import (
 
 const (
 	// FundConnextDemoPath is a Path for Demo
-	fundConnextDemoPath string = "https://stage.fundconnext.com"
+	fundConnextDemoPath string = "https://demo.fundconnext.com"
 	// FundConnextStagingPath is a Path for Staging
-	fundConnextStagingPath string = "https://demo.fundconnext.com"
+	fundConnextStagingPath string = "https://stage.fundconnext.com"
 	// FundConnextProductionPath is a Path for Production
 	fundConnextProductionPath string = "https://www.fundconnext.com"
 )
