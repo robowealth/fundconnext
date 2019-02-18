@@ -13,7 +13,7 @@ func TestDownload(t *testing.T) {
 		Password: os.Getenv("PASSWORD"),
 		Env:      os.Getenv("ENV"),
 	}
-	err := fc.Login().Download("20190103", f.FundProfileFileName).Save("./20190103_fund.zip").End()
+	err := fc.Login().Download("20190103", f.DividendNews).Save("./20190103_fund.zip").End()
 	if err != nil {
 		panic(err)
 	}

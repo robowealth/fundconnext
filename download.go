@@ -1,7 +1,6 @@
 package fundconnext
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"hash"
@@ -11,29 +10,61 @@ import (
 )
 
 const (
-	// FundProfileFileName filename
-	FundProfileFileName string = "FundProfile.zip"
-	// FundMappingFileName filename
-	FundMappingFileName string = ""
-	// FundSwitchingFileName filename
-	FundSwitchingFileName string = ""
-	// FundHolidayFileName filename
-	FundHolidayFileName string = ""
-	// TradeCalendarFileName filename
-	TradeCalendarFileName string = ""
+	// FundProfile  T
+	FundProfile string = "FundProfile.zip"
+	// FundMapping  T
+	FundMapping string = "FundMapping.zip"
+	// SwitchingMatrix  T
+	SwitchingMatrix string = "SwitchingMatrix.zip"
+	// FundHoliday  T
+	FundHoliday string = "FundHoliday.zip"
+	// TradeCalendar  T
+	TradeCalendar string = "TradeCalendar.zip"
+	// AccountProfile  T
+	AccountProfile string = "AccountProfile.zip"
+	// UnitholderMapping  T
+	UnitholderMapping string = "UnitholderMapping.zip"
+	// BankAccountUnitholder  T
+	BankAccountUnitholder string = "BankAccountUnitholder.zip"
+	// CustomerProfile  T
+	CustomerProfile string = "CustomerProfile.zip"
+	// NAV  T-1
+	NAV string = "Nav.zip"
+	// UnitholderBalance  T-1
+	UnitholderBalance string = "UnitholderBalance.zip"
+	// AllottedTransactions  T-1
+	AllottedTransactions string = "AllottedTransactions.zip"
+	// DividendNews   T-1
+	DividendNews string = "DividendNews.zip"
+	// DividendTransactions  T-1
+	DividendTransactions string = "DividendTransactions.zip"
 )
 
 // DownloadedFile is
 type DownloadedFile struct {
 	Error    error
-	Hash     hash.Hash
 	FileType string
 	Reader   *io.ReadCloser
 }
 
-// Extract file
-func (d *DownloadedFile) Extract() {
+// DataFile structure
+type DataFile struct {
+	Error error
+}
 
+// Extract is
+func (d *DownloadedFile) Extract() *DownloadedFile {
+	return d
+}
+
+// Hash is
+func (d *DownloadedFile) Hash(H *hash.Hash) *DownloadedFile {
+	return d
+}
+
+// Struct is
+func (d *DownloadedFile) Struct(T interface{}) *DownloadedFile {
+	return d
 }
 
 // Save filepath
@@ -99,17 +130,15 @@ func (f *FundConnext) Download(date, file string) *DownloadedFile {
 			Error: errors.New(code + " " + message),
 		}
 	}
-
-	h := md5.New()
-	if _, err := io.Copy(h, resp.Body); err != nil {
-		return &DownloadedFile{
-			Error: err,
-		}
-	}
+	// h := md5.New()
+	// if _, err := io.Copy(h, resp.Body); err != nil {
+	// 	return &DownloadedFile{
+	// 		Error: err,
+	// 	}
+	// }
 	return &DownloadedFile{
 		Error:    nil,
 		Reader:   &resp.Body,
-		Hash:     h,
 		FileType: resp.Header.Get("Content-Type"),
 	}
 }
