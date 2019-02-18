@@ -1,6 +1,7 @@
 package fundconnext_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -13,11 +14,15 @@ func TestDownload(t *testing.T) {
 		Password: os.Getenv("PASSWORD"),
 		Env:      os.Getenv("ENV"),
 	}
-	fundProfile := fc.Login().Download("20190103", f.FundProfile).Save("./20190103_fund_profile.zip")
-	defer fundProfile.End()
-	if fundProfile.Error != nil {
-		panic(fundProfile.Error)
+	f := fc.Login().Download("20190103", f.FundProfile).Save("./20190103_fund_profile.zip")
+	defer f.End()
+	if f.Error != nil {
+		panic(f.Error)
 	}
-	println(fundProfile.Length)
-	println(fundProfile.FileType)
+	b, _ := f.Hash()
+	fmt.Printf("%x", b)
+	err := f.Extract("./sal").Error
+	if err != nil {
+		panic(err)
+	}
 }

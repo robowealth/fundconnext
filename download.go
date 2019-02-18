@@ -1,12 +1,14 @@
 package fundconnext
 
 import (
+	"archive/zip"
+	"crypto/md5"
 	"encoding/json"
 	"errors"
-	"hash"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	path "path/filepath"
 )
 
@@ -58,27 +60,105 @@ type SavedFile struct {
 
 // DataFile structure
 type DataFile struct {
-	Error error
+	SavedFile
 }
 
 // Extract is
-func (d *DownloadedFile) Extract() *DataFile {
-	if d.Error != nil {
+func (d *SavedFile) Extract(dst string) *DataFile {
+	r, err := zip.OpenReader(d.Location)
+	if err != nil {
+		d.Error = err
 		return &DataFile{
-			Error: d.Error,
+			SavedFile: *d,
 		}
 	}
-	return &DataFile{}
+
+	rs := make([]string, len(r.Reader.File))
+	if _, err := os.Stat(dst); os.IsNotExist(err) {
+		os.MkdirAll(dst, 0755)
+	}
+	for i, file := range r.Reader.File {
+		zippedFile, err := file.Open()
+		if err != nil {
+			d.Error = err
+			return &DataFile{
+				SavedFile: *d,
+			}
+		}
+		defer zippedFile.Close()
+		extractedFilePath := filepath.Join(
+			dst,
+			file.Name,
+		)
+		rs[i] = extractedFilePath
+		if file.FileInfo().IsDir() {
+			os.MkdirAll(extractedFilePath, file.Mode())
+		} else {
+			outputFile, err := os.OpenFile(
+				extractedFilePath,
+				os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+				file.Mode(),
+			)
+			if err != nil {
+				d.Error = err
+				return &DataFile{
+					SavedFile: *d,
+				}
+			}
+			defer outputFile.Close()
+			_, err = io.Copy(outputFile, zippedFile)
+			if err != nil {
+				d.Error = err
+				return &DataFile{
+					SavedFile: *d,
+				}
+			}
+		}
+	}
+	d.Location = rs[0]
+	return &DataFile{
+		SavedFile: *d,
+	}
 }
 
 // Hash is
-func (d *DownloadedFile) Hash(H *hash.Hash) *DownloadedFile {
-	return d
+func (d *SavedFile) Hash() ([]byte, error) {
+	if d.Error != nil {
+		return nil, d.Error
+	}
+	f, err := os.Open(d.Location)
+	if err != nil {
+		d.Error = err
+		return nil, err
+	}
+	defer f.Close()
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		d.Error = err
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
 }
 
 // Struct is
 func (d *DownloadedFile) Struct(T interface{}) *DownloadedFile {
 	return d
+}
+
+// SetLocation path
+func (d *DownloadedFile) SetLocation(filepath string) *SavedFile {
+	abspath, err := path.Abs(filepath)
+	if err != nil {
+		d.Error = err
+		return &SavedFile{
+			DownloadedFile: *d,
+		}
+	}
+	return &SavedFile{
+		DownloadedFile: *d,
+		Location:       abspath,
+	}
 }
 
 // Save filepath
