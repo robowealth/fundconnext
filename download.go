@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	path "path/filepath"
 )
 
 const (
@@ -42,9 +43,17 @@ const (
 
 // DownloadedFile is
 type DownloadedFile struct {
-	Error    error
-	FileType string
-	Reader   *io.ReadCloser
+	Error        error
+	FileType     string
+	Reader       *io.ReadCloser
+	Length       int64
+	UnCompressed bool
+}
+
+// SavedFile structure
+type SavedFile struct {
+	DownloadedFile
+	Location string
 }
 
 // DataFile structure
@@ -53,8 +62,13 @@ type DataFile struct {
 }
 
 // Extract is
-func (d *DownloadedFile) Extract() *DownloadedFile {
-	return d
+func (d *DownloadedFile) Extract() *DataFile {
+	if d.Error != nil {
+		return &DataFile{
+			Error: d.Error,
+		}
+	}
+	return &DataFile{}
 }
 
 // Hash is
@@ -68,21 +82,37 @@ func (d *DownloadedFile) Struct(T interface{}) *DownloadedFile {
 }
 
 // Save filepath
-func (d *DownloadedFile) Save(filepath string) *DownloadedFile {
+func (d *DownloadedFile) Save(filepath string) *SavedFile {
 	if d.Error != nil {
-		return d
+		return &SavedFile{
+			DownloadedFile: *d,
+		}
 	}
 	out, err := os.Create(filepath)
 	if err != nil {
 		d.Error = err
-		return d
+		return &SavedFile{
+			DownloadedFile: *d,
+		}
 	}
 	defer out.Close()
 	if _, err = io.Copy(out, *d.Reader); err != nil {
 		d.Error = err
-		return d
+		return &SavedFile{
+			DownloadedFile: *d,
+		}
 	}
-	return d
+	abspath, err := path.Abs(filepath)
+	if err != nil {
+		d.Error = err
+		return &SavedFile{
+			DownloadedFile: *d,
+		}
+	}
+	return &SavedFile{
+		DownloadedFile: *d,
+		Location:       abspath,
+	}
 }
 
 // End is
@@ -130,15 +160,12 @@ func (f *FundConnext) Download(date, file string) *DownloadedFile {
 			Error: errors.New(code + " " + message),
 		}
 	}
-	// h := md5.New()
-	// if _, err := io.Copy(h, resp.Body); err != nil {
-	// 	return &DownloadedFile{
-	// 		Error: err,
-	// 	}
-	// }
+
 	return &DownloadedFile{
-		Error:    nil,
-		Reader:   &resp.Body,
-		FileType: resp.Header.Get("Content-Type"),
+		Error:        nil,
+		Reader:       &resp.Body,
+		FileType:     resp.Header.Get("Content-Type"),
+		Length:       resp.ContentLength,
+		UnCompressed: resp.Uncompressed,
 	}
 }

@@ -13,8 +13,11 @@ func TestDownload(t *testing.T) {
 		Password: os.Getenv("PASSWORD"),
 		Env:      os.Getenv("ENV"),
 	}
-	err := fc.Login().Download("20190103", f.DividendNews).Save("./20190103_fund.zip").End()
-	if err != nil {
-		panic(err)
+	fundProfile := fc.Login().Download("20190103", f.FundProfile).Save("./20190103_fund_profile.zip")
+	defer fundProfile.End()
+	if fundProfile.Error != nil {
+		panic(fundProfile.Error)
 	}
+	println(fundProfile.Length)
+	println(fundProfile.FileType)
 }
