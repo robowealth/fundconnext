@@ -1,14 +1,11 @@
 package fundconnext
 
 import (
-	"archive/zip"
-	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	path "path/filepath"
 )
 
@@ -43,191 +40,30 @@ const (
 	DividendTransactions string = "DividendTransactions.zip"
 )
 
-// DownloadedFile is
-type DownloadedFile struct {
-	Error        error
-	FileType     string
-	Reader       *io.ReadCloser
-	Length       int64
-	UnCompressed bool
-}
-
-// SavedFile structure
-type SavedFile struct {
-	DownloadedFile
-	Location string
-}
-
-// DataFile structure
-type DataFile struct {
-	SavedFile
-}
-
-// Extract is
-func (d *SavedFile) Extract(dst string) *DataFile {
-	r, err := zip.OpenReader(d.Location)
-	if err != nil {
-		d.Error = err
-		return &DataFile{
-			SavedFile: *d,
-		}
-	}
-
-	rs := make([]string, len(r.Reader.File))
-	if _, err := os.Stat(dst); os.IsNotExist(err) {
-		os.MkdirAll(dst, 0755)
-	}
-	for i, file := range r.Reader.File {
-		zippedFile, err := file.Open()
-		if err != nil {
-			d.Error = err
-			return &DataFile{
-				SavedFile: *d,
-			}
-		}
-		defer zippedFile.Close()
-		extractedFilePath := filepath.Join(
-			dst,
-			file.Name,
-		)
-		rs[i] = extractedFilePath
-		if file.FileInfo().IsDir() {
-			os.MkdirAll(extractedFilePath, file.Mode())
-		} else {
-			outputFile, err := os.OpenFile(
-				extractedFilePath,
-				os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
-				file.Mode(),
-			)
-			if err != nil {
-				d.Error = err
-				return &DataFile{
-					SavedFile: *d,
-				}
-			}
-			defer outputFile.Close()
-			_, err = io.Copy(outputFile, zippedFile)
-			if err != nil {
-				d.Error = err
-				return &DataFile{
-					SavedFile: *d,
-				}
-			}
-		}
-	}
-	d.Location = rs[0]
-	return &DataFile{
-		SavedFile: *d,
-	}
-}
-
-// Hash is
-func (d *SavedFile) Hash() ([]byte, error) {
-	if d.Error != nil {
-		return nil, d.Error
-	}
-	f, err := os.Open(d.Location)
-	if err != nil {
-		d.Error = err
-		return nil, err
-	}
-	defer f.Close()
-	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		d.Error = err
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
-}
-
-// Struct is
-func (d *DownloadedFile) Struct(T interface{}) *DownloadedFile {
-	return d
-}
-
-// SetLocation path
-func (d *DownloadedFile) SetLocation(filepath string) *SavedFile {
-	abspath, err := path.Abs(filepath)
-	if err != nil {
-		d.Error = err
-		return &SavedFile{
-			DownloadedFile: *d,
-		}
-	}
-	return &SavedFile{
-		DownloadedFile: *d,
-		Location:       abspath,
-	}
-}
-
-// Save filepath
-func (d *DownloadedFile) Save(filepath string) *SavedFile {
-	if d.Error != nil {
-		return &SavedFile{
-			DownloadedFile: *d,
-		}
-	}
-	out, err := os.Create(filepath)
-	if err != nil {
-		d.Error = err
-		return &SavedFile{
-			DownloadedFile: *d,
-		}
-	}
-	defer out.Close()
-	if _, err = io.Copy(out, *d.Reader); err != nil {
-		d.Error = err
-		return &SavedFile{
-			DownloadedFile: *d,
-		}
-	}
-	abspath, err := path.Abs(filepath)
-	if err != nil {
-		d.Error = err
-		return &SavedFile{
-			DownloadedFile: *d,
-		}
-	}
-	return &SavedFile{
-		DownloadedFile: *d,
-		Location:       abspath,
-	}
-}
-
-// End is
-func (d *DownloadedFile) End() error {
-	if d.Error != nil {
-		return d.Error
-	}
-	defer (*d.Reader).Close()
-	return nil
-}
-
 // Download is
-func (f *FundConnext) Download(date, file string) *DownloadedFile {
+func (f *FundConnext) Download(date, file string) (d *FileReader) {
 	if f.Error != nil {
-		return &DownloadedFile{
+		return &FileReader{
 			Error: f.Error,
 		}
 	}
 	fundconnextPath, err := endpoint(f.Env, "/api/files/"+date+"/"+file)
 	if err != nil {
-		return &DownloadedFile{
+		return &FileReader{
 			Error: err,
 		}
 	}
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", fundconnextPath, nil)
 	if err != nil {
-		return &DownloadedFile{
+		return &FileReader{
 			Error: err,
 		}
 	}
 	req.Header.Set("X-Auth-Token", f.AccessToken)
 	resp, err := client.Do(req)
 	if err != nil {
-		return &DownloadedFile{
+		return &FileReader{
 			Error: err,
 		}
 	}
@@ -236,16 +72,56 @@ func (f *FundConnext) Download(date, file string) *DownloadedFile {
 		var errorResponse map[string]map[string]string
 		json.NewDecoder(resp.Body).Decode(&errorResponse)
 		message, code := errorResponse["errMsg"]["message"], errorResponse["errMsg"]["code"]
-		return &DownloadedFile{
+		return &FileReader{
 			Error: errors.New(code + " " + message),
 		}
 	}
 
-	return &DownloadedFile{
-		Error:        nil,
-		Reader:       &resp.Body,
-		FileType:     resp.Header.Get("Content-Type"),
-		Length:       resp.ContentLength,
-		UnCompressed: resp.Uncompressed,
+	return &FileReader{
+		Error:              nil,
+		Read:               &resp.Body,
+		ContentType:        resp.Header.Get("Content-Type"),
+		ContentDisposition: resp.Header.Get("Content-Disposition"),
+	}
+}
+
+// Save filepath
+func (d *FileReader) Save(filepath string) (s *File) {
+	defer func() {
+		if p := recover(); p != nil {
+			e, _ := p.(error)
+			s = &File{
+				Error: e,
+			}
+		}
+	}()
+	defer (*d.Read).Close()
+	if d.Error != nil {
+		panic(d.Error)
+	}
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, *d.Read); err != nil {
+		panic(err)
+	}
+	abspath, err := path.Abs(filepath)
+	if err != nil {
+		panic(err)
+	}
+	fi, err := os.Stat(abspath)
+	if err != nil {
+		panic(err)
+	}
+	return &File{
+		Error:       nil,
+		Name:        fi.Name(),
+		ContentType: d.ContentType,
+		Location:    abspath,
+		Length:      fi.Size(),
 	}
 }
