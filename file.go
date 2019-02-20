@@ -4,11 +4,13 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/md5"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	path "path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -91,15 +93,39 @@ func (d *File) Load(t interface{}) (m *TextFileMeta, er error) {
 	}
 	s := bytes.NewBuffer(dat).String()
 	var date, count, version string
-	for k, v := range strings.Split(s, "\n") {
+	lines := strings.Split(s, "\n")
+
+	item := reflect.ValueOf(t).Elem()
+
+	if item.Kind() != reflect.Slice {
+		panic(errors.New("Input interface is not a slice"))
+	}
+	ElemType := item.Type()
+	stc := ElemType.Elem()
+	if stc.Kind() != reflect.Struct {
+		panic(errors.New("Input interface is not a slice of struct/array"))
+	}
+
+	var els []interface{}
+	for k, v := range lines {
 		if k == 0 {
 			row := strings.Split(v, "|")
 			date, count, version = row[0], row[1], row[2]
 		} else {
-
+			row := strings.Split(v, "|")
+			size := stc.NumField()
+			el := reflect.New(stc).Elem()
+			for i := 0; i < size; i++ {
+				typeField := stc.Field(i)
+				el.FieldByName(typeField.Name).SetString(row[i])
+			}
+			els = append(els, el.Interface())
 		}
 	}
 	c, err := strconv.Atoi(count)
+	if len(lines)-1 != c {
+		panic(errors.New("Data Length is invalid"))
+	}
 	if err != nil {
 		panic(err)
 	}
