@@ -1,6 +1,7 @@
 package fundconnext_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -21,6 +22,7 @@ type FundProfile struct {
 	FundRiskLevel    string
 	FXRiskFlag       string
 	FATCAAllowFlag   string
+	BuyCutOffTime    string
 }
 
 func TestDownload(t *testing.T) {
@@ -29,10 +31,13 @@ func TestDownload(t *testing.T) {
 		Password: os.Getenv("PASSWORD"),
 		Env:      os.Getenv("ENV"),
 	}
-	d := []FundProfile{}
-	_, err := fc.Login().Download("20190103", f.FundProfile).Save("./test/20190103_fund_profile.zip").Extract("./test/fund_profile").One().Load(&d)
+	data := []FundProfile{}
+	_, err := fc.Login().Download("20190103", f.FundProfile).Save("./test/20190103_fund_profile.zip").Extract("./test/fund_profile").One().All(&data)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(d)
+	for _, v := range data {
+		b, _ := json.MarshalIndent(v, "", "  ")
+		fmt.Println(string(b))
+	}
 }

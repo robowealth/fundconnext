@@ -99,7 +99,6 @@ func (d *FileReader) Save(filepath string) (s *File) {
 	if d.Error != nil {
 		panic(d.Error)
 	}
-
 	out, err := os.Create(filepath)
 	if err != nil {
 		panic(err)

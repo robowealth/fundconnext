@@ -79,8 +79,8 @@ func (d *Files) One() (f *File) {
 	}
 }
 
-// Load is
-func (d *File) Load(t interface{}) (m *TextFileMeta, er error) {
+// All is
+func (d *File) All(t interface{}) (m *TextFileMeta, er error) {
 	defer func() {
 		if p := recover(); p != nil {
 			e, _ := p.(error)
@@ -94,8 +94,11 @@ func (d *File) Load(t interface{}) (m *TextFileMeta, er error) {
 	s := bytes.NewBuffer(dat).String()
 	var date, count, version string
 	lines := strings.Split(s, "\n")
-
-	item := reflect.ValueOf(t).Elem()
+	dest := reflect.ValueOf(t)
+	if dest.Kind() != reflect.Ptr {
+		panic(errors.New("some: check must be a pointer"))
+	}
+	item := dest.Elem()
 
 	if item.Kind() != reflect.Slice {
 		panic(errors.New("Input interface is not a slice"))
@@ -105,12 +108,19 @@ func (d *File) Load(t interface{}) (m *TextFileMeta, er error) {
 	if stc.Kind() != reflect.Struct {
 		panic(errors.New("Input interface is not a slice of struct/array"))
 	}
-
-	var els []interface{}
+	item.Set(reflect.MakeSlice(ElemType, len(lines)-1, len(lines)-1))
+	var c int
 	for k, v := range lines {
 		if k == 0 {
 			row := strings.Split(v, "|")
 			date, count, version = row[0], row[1], row[2]
+			c, err = strconv.Atoi(count)
+			if err != nil {
+				panic(err)
+			}
+			if len(lines)-1 != c {
+				panic(errors.New("Data Length is invalid"))
+			}
 		} else {
 			row := strings.Split(v, "|")
 			size := stc.NumField()
@@ -119,16 +129,10 @@ func (d *File) Load(t interface{}) (m *TextFileMeta, er error) {
 				typeField := stc.Field(i)
 				el.FieldByName(typeField.Name).SetString(row[i])
 			}
-			els = append(els, el.Interface())
+			item.Index(k - 1).Set(el)
 		}
 	}
-	c, err := strconv.Atoi(count)
-	if len(lines)-1 != c {
-		panic(errors.New("Data Length is invalid"))
-	}
-	if err != nil {
-		panic(err)
-	}
+
 	return &TextFileMeta{
 		Date:    date,
 		Count:   c,
